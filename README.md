@@ -9,7 +9,7 @@ https://www.johnbnevin.com/market-forces/
 # INSTRUCTIONS
 Click 'SereniTool.html' above this readme, then choose 'Download Raw File' on the top right of the resulting page.
 
-# 🌟 Resentment Recovery Worksheet v1.0 - Production Release
+# 🌟 SereniTool Resentment Recovery Worksheet App v1.0 - Production Release
 
 ## Overview
 A comprehensive, secure digital tool for Step 4 resentment inventory work, combining AA Big Book methodology with SMART Recovery principles. Built for serious recovery work with enterprise-level functionality while maintaining absolute privacy.
