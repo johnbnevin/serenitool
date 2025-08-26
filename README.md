@@ -1,3 +1,5 @@
+*"Resentment is the 'number one' offender. It destroys more alcoholics than anything else."* - Big Book, p. 64
+
 # SereniTool
 
 A vibecoded comprehensive digital tool for auditing and reframing resentments, combining Step 4 inventory work and Step 9 amends from the AA Big Book with SMART Recovery principles.  Overcome the bothersome with this guided process for everyone. One needn't be addicted to replace anger with serenity, but doing so can help to maintain sobriety.
@@ -8,6 +10,8 @@ https://www.johnbnevin.com/market-forces/
 
 # INSTRUCTIONS
 Click 'SereniTool.html' above this readme, then choose 'Download Raw File' on the top right of the resulting page.
+
+Replace the word 'prayer' with 'meditation' and 'God' with 'good' as needed, to be able to benefit maximally from these effective personal development tools.
 
 # 🌟 SereniTool Resentment Recovery Worksheet App v1.0 - Production Release
 
@@ -61,8 +65,3 @@ A comprehensive, secure digital tool for Step 4 resentment inventory work, combi
 
 ## 🚀 **Ready for Immediate Use**
 This production-ready application provides everything needed for comprehensive Step 4 resentment work, from initial inventory through prayer completion and amends tracking. Built with recovery community input and tested for real-world use in serious recovery work.
-
-**Perfect for**: Sponsees working Step 4, sponsors guiding inventory work, recovery groups, and anyone committed to thorough resentment elimination according to approved literature.
-
----
-*"Resentment is the 'number one' offender. It destroys more alcoholics than anything else."* - Big Book, p. 64
