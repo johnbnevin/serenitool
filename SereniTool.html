@@ -470,16 +470,16 @@
             .main-content {
                 grid-template-columns: 1fr;
             }
-            
+
             .controls {
                 flex-direction: column;
                 align-items: stretch;
             }
-            
+
             .form-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .header h1 {
                 font-size: 2rem;
             }
@@ -599,7 +599,7 @@
 
         <div class="privacy-notice">
             <h4>🔒 Privacy & Security</h4>
-            <p>All data is stored locally on your device only. Nothing is sent to any server. Your inventory remains completely private and secure. Clear your browser data to permanently delete all entries.</p>
+            <p>All data is stored locally on your device only. Nothing is sent to any server. Your inventory remains completely private and secure, assuming your computer is secure. Clear your browser data to permanently delete all entries.</p>
         </div>
 
         <div class="controls">
@@ -706,14 +706,14 @@
                         </blockquote>
                         <cite>— Big Book, p. 64</cite>
                     </div>
-                    
+
                     <div class="quote-section">
                         <blockquote>
                             "We realized that the people who wronged us were perhaps spiritually sick."
                         </blockquote>
                         <cite>— Big Book, p. 67</cite>
                     </div>
-                    
+
                     <div class="quote-section">
                         <blockquote>
                             "If we were to live, we had to be free of anger. The grouch and the brainstorm were not for us."
@@ -747,7 +747,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal('addModal')">&times;</span>
             <h2>Add New Resentment Entry</h2>
-            
+
             <div class="tab-container">
                 <div class="tabs">
                     <button class="tab-btn active" onclick="switchTab('basic')">Basic Info</button>
@@ -761,7 +761,7 @@
                             <label>I'm resentful at:</label>
                             <input type="text" id="resentfulAt" placeholder="Person, institution, or principle" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Category:</label>
                             <select id="category">
@@ -961,7 +961,7 @@
             document.getElementById('categoryFilter').addEventListener('change', filterEntries);
             document.getElementById('affectsFilter').addEventListener('change', filterEntries);
             document.getElementById('searchInput').addEventListener('input', filterEntries);
-            
+
             // Add amends status change listener
             document.getElementById('amendsStatus').addEventListener('change', function() {
                 const dateGroup = document.getElementById('amendsCompleteDateGroup');
@@ -983,12 +983,12 @@
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
-            
+
             // Remove active class from all tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
+
             // Show selected tab and activate button
             document.getElementById(tabId).classList.add('active');
             event.target.classList.add('active');
@@ -1014,6 +1014,17 @@
         }
 
         function closeModal(modalId) {
+            // For the main entry modal, confirm before closing if there's unsaved data
+            if (modalId === 'addModal') {
+                const hasData = document.getElementById('resentfulAt').value.trim() ||
+                              document.getElementById('cause').value.trim() ||
+                              document.getElementById('myPart').value.trim() ||
+                              getCheckedValues().length > 0;
+
+                if (hasData && !confirm('You have unsaved changes. Are you sure you want to close?')) {
+                    return; // Don't close if user cancels
+                }
+            }
             document.getElementById(modalId).style.display = 'none';
         }
 
@@ -1030,12 +1041,12 @@
             document.getElementById('amendsCompleteDate').value = '';
             document.getElementById('amendsCompleteDateGroup').style.display = 'none';
             document.getElementById('notes').value = '';
-            
+
             // Clear checkboxes
             document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
-            
+
             // Switch back to first tab
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -1094,7 +1105,7 @@
         function editEntry(index) {
             const entry = entries[index];
             editingIndex = index;
-            
+
             // Fill form with entry data
             document.getElementById('resentfulAt').value = entry.resentfulAt;
             document.getElementById('category').value = entry.category;
@@ -1109,7 +1120,7 @@
             document.getElementById('notes').value = entry.notes || '';
             document.getElementById('prayerCommitment').checked = entry.prayerCommitment || false;
             document.getElementById('prayerCompleted').checked = entry.prayerCompleted || false;
-            
+
             // Show/hide amends date field based on status
             const dateGroup = document.getElementById('amendsCompleteDateGroup');
             if (entry.amendsStatus === 'complete') {
@@ -1117,7 +1128,7 @@
             } else {
                 dateGroup.style.display = 'none';
             }
-            
+
             // Set checkboxes
             const checkboxMap = {
                 'self-esteem': 'selfEsteem',
@@ -1128,12 +1139,12 @@
                 'pride': 'pride',
                 'pocketbook': 'pocketbook'
             };
-            
+
             // First clear all checkboxes
             Object.values(checkboxMap).forEach(checkboxId => {
                 document.getElementById(checkboxId).checked = false;
             });
-            
+
             // Then set the ones that should be checked
             (entry.affects || []).forEach(affect => {
                 const checkboxId = checkboxMap[affect];
@@ -1141,7 +1152,7 @@
                     document.getElementById(checkboxId).checked = true;
                 }
             });
-            
+
             // Show the modal
             document.getElementById('addModal').style.display = 'block';
         }
@@ -1158,7 +1169,7 @@
         function renderEntries() {
             const container = document.getElementById('entriesContainer');
             const filteredEntries = getFilteredEntries();
-            
+
             if (filteredEntries.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 40px; color: #6c757d;">
@@ -1182,25 +1193,25 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="entry-details">
                         <div class="detail-item">
                             <div class="detail-label">Category</div>
                             <div class="detail-value">${capitalizeFirst(entry.category)}</div>
                         </div>
-                        
+
                         <div class="detail-item">
                             <div class="detail-label">Date Created</div>
                             <div class="detail-value">${formatDate(entry.dateCreated)}</div>
                         </div>
-                        
+
                         ${entry.cause ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">The Cause</div>
                                 <div class="detail-value">${escapeHtml(entry.cause)}</div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.affects && entry.affects.length > 0 ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">Affects My</div>
@@ -1209,42 +1220,42 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.myPart ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">My Part</div>
                                 <div class="detail-value">${escapeHtml(entry.myPart)}</div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.characterDefect ? `
                             <div class="detail-item">
                                 <div class="detail-label">Character Defect</div>
                                 <div class="detail-value">${capitalizeFirst(entry.characterDefect)}</div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.underlyingHurt ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">Underlying Hurt (SMART)</div>
                                 <div class="detail-value">${escapeHtml(entry.underlyingHurt)}</div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.shouldHaveDone ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">What I Should Have Done</div>
                                 <div class="detail-value">${escapeHtml(entry.shouldHaveDone)}</div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.amendsNeeded ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">Amends Needed</div>
                                 <div class="detail-value">${escapeHtml(entry.amendsNeeded)}</div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.amendsStatus && entry.amendsStatus !== 'not-applicable' ? `
                             <div class="detail-item">
                                 <div class="detail-label">Amends Status</div>
@@ -1256,7 +1267,7 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.prayerCommitment ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">Prayer Commitment</div>
@@ -1266,7 +1277,7 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.notes ? `
                             <div class="detail-item" style="grid-column: 1 / -1;">
                                 <div class="detail-label">Notes</div>
@@ -1280,29 +1291,29 @@
 
         function getFilteredEntries() {
             let filtered = [...entries];
-            
+
             const categoryFilter = document.getElementById('categoryFilter').value;
             const affectsFilter = document.getElementById('affectsFilter').value;
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
+
             if (categoryFilter) {
                 filtered = filtered.filter(entry => entry.category === categoryFilter);
             }
-            
+
             if (affectsFilter) {
-                filtered = filtered.filter(entry => 
+                filtered = filtered.filter(entry =>
                     entry.affects && entry.affects.includes(affectsFilter)
                 );
             }
-            
+
             if (searchTerm) {
-                filtered = filtered.filter(entry => 
+                filtered = filtered.filter(entry =>
                     entry.resentfulAt.toLowerCase().includes(searchTerm) ||
                     (entry.cause && entry.cause.toLowerCase().includes(searchTerm)) ||
                     (entry.myPart && entry.myPart.toLowerCase().includes(searchTerm))
                 );
             }
-            
+
             return filtered.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
         }
 
@@ -1312,25 +1323,25 @@
 
         function updateStats() {
             const total = entries.length;
-            const completed = entries.filter(entry => 
-                entry.myPart && entry.myPart.trim() && 
+            const completed = entries.filter(entry =>
+                entry.myPart && entry.myPart.trim() &&
                 entry.shouldHaveDone && entry.shouldHaveDone.trim()
             ).length;
-            
+
             // Add amends stats to the sidebar
-            const amendsNeeded = entries.filter(entry => 
+            const amendsNeeded = entries.filter(entry =>
                 entry.amendsStatus === 'pending'
             ).length;
-            
-            const amendsComplete = entries.filter(entry => 
+
+            const amendsComplete = entries.filter(entry =>
                 entry.amendsStatus === 'complete'
             ).length;
-            
+
             document.getElementById('totalEntries').textContent = total;
             document.getElementById('completedEntries').textContent = completed;
             document.getElementById('amendsNeeded').textContent = amendsNeeded;
             document.getElementById('amendsComplete').textContent = amendsComplete;
-            
+
             const percentage = total > 0 ? (completed / total) * 100 : 0;
             document.getElementById('progressFill').style.width = `${percentage}%`;
         }
@@ -1349,45 +1360,45 @@
         function exportToJSON() {
             const dataStr = JSON.stringify(entries, null, 2);
             const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            
+
             const exportFileDefaultName = `resentment-inventory-${new Date().toISOString().split('T')[0]}.json`;
-            
+
             const linkElement = document.createElement('a');
             linkElement.setAttribute('href', dataUri);
             linkElement.setAttribute('download', exportFileDefaultName);
             linkElement.click();
-            
+
             closeModal('exportModal');
         }
 
         function importData() {
             const fileInput = document.getElementById('importFile');
             const file = fileInput.files[0];
-            
+
             if (!file) {
                 alert('Please select a file to import.');
                 return;
             }
-            
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
-                    
+
                     if (!Array.isArray(importedData)) {
                         throw new Error('Invalid file format');
                     }
-                    
+
                     // Validate data structure
-                    const validEntry = importedData.every(entry => 
-                        entry.hasOwnProperty('resentfulAt') && 
+                    const validEntry = importedData.every(entry =>
+                        entry.hasOwnProperty('resentfulAt') &&
                         entry.hasOwnProperty('dateCreated')
                     );
-                    
+
                     if (!validEntry) {
                         throw new Error('Invalid data structure');
                     }
-                    
+
                     if (confirm(`Import ${importedData.length} entries? This will add to your existing data.`)) {
                         // Add unique IDs to avoid conflicts
                         const processedData = importedData.map(entry => ({
@@ -1395,28 +1406,28 @@
                             id: Date.now() + Math.random(),
                             dateImported: new Date().toISOString()
                         }));
-                        
+
                         entries = entries.concat(processedData);
                         localStorage.setItem('resentmentEntries', JSON.stringify(entries));
                         renderEntries();
                         updateStats();
                         closeModal('importModal');
-                        
+
                         alert(`Successfully imported ${importedData.length} entries.`);
                     }
-                    
+
                 } catch (error) {
                     alert('Error importing file: ' + error.message);
                 }
             };
-            
+
             reader.readAsText(file);
         }
 
         function loadPrayerList() {
             const prayerEntries = entries.filter(entry => entry.prayerCommitment && !entry.prayerCompleted);
             const container = document.getElementById('prayerListContent');
-            
+
             if (prayerEntries.length === 0) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 20px; color: #6c757d;">
@@ -1426,7 +1437,7 @@
                 `;
                 return;
             }
-            
+
             container.innerHTML = `
                 <div style="background: #e3f2fd; padding: 20px; border-radius: 12px; margin-bottom: 25px; border-left: 5px solid #2196f3;">
                     <h4 style="margin: 0 0 15px 0; color: #1565c0; font-size: 1.2rem;">🙏 Page 552 Prayer Method</h4>
@@ -1436,7 +1447,7 @@
                         </p>
                         <p style="margin: 0; color: #666; font-size: 0.95rem;">— Big Book, Page 552</p>
                     </div>
-                    
+
                     <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                         <h5 style="margin: 0 0 10px 0; color: #e65100;">📋 Daily Practice Instructions:</h5>
                         <ul style="margin: 0; padding-left: 20px; color: #bf360c;">
@@ -1446,7 +1457,7 @@
                             <li>You will find you come to mean it and feel free</li>
                         </ul>
                     </div>
-                    
+
                     <div style="background: #f3e5f5; padding: 15px; border-radius: 8px;">
                         <h5 style="margin: 0 0 10px 0; color: #7b1fa2;">🧘 Meditation Integration (SMART):</h5>
                         <ul style="margin: 0; padding-left: 20px; color: #4a148c;">
@@ -1457,7 +1468,7 @@
                         </ul>
                     </div>
                 </div>
-                
+
                 ${prayerEntries.map((entry, index) => `
                     <div style="background: white; padding: 20px; margin: 15px 0; border-radius: 12px; border-left: 4px solid var(--secondary); box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                         <div style="border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
@@ -1465,11 +1476,11 @@
                                 ${escapeHtml(entry.resentfulAt)}
                             </h4>
                             <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
-                                <strong>Category:</strong> ${capitalizeFirst(entry.category)} | 
+                                <strong>Category:</strong> ${capitalizeFirst(entry.category)} |
                                 <strong>Added:</strong> ${formatDate(entry.dateCreated)}
                             </div>
                         </div>
-                        
+
                         ${entry.cause ? `
                             <div style="margin-bottom: 12px;">
                                 <div style="font-weight: 600; color: #555; font-size: 0.9rem; margin-bottom: 5px;">THE CAUSE:</div>
@@ -1478,7 +1489,7 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.affects && entry.affects.length > 0 ? `
                             <div style="margin-bottom: 12px;">
                                 <div style="font-weight: 600; color: #555; font-size: 0.9rem; margin-bottom: 5px;">AFFECTS MY:</div>
@@ -1487,7 +1498,7 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.myPart ? `
                             <div style="margin-bottom: 12px;">
                                 <div style="font-weight: 600; color: #555; font-size: 0.9rem; margin-bottom: 5px;">MY PART:</div>
@@ -1496,7 +1507,7 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.underlyingHurt ? `
                             <div style="margin-bottom: 12px;">
                                 <div style="font-weight: 600; color: #555; font-size: 0.9rem; margin-bottom: 5px;">UNDERLYING HURT (SMART):</div>
@@ -1505,7 +1516,7 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         ${entry.characterDefect ? `
                             <div style="margin-bottom: 12px;">
                                 <div style="font-weight: 600; color: #555; font-size: 0.9rem; margin-bottom: 5px;">CHARACTER DEFECT:</div>
@@ -1514,7 +1525,7 @@
                                 </div>
                             </div>
                         ` : ''}
-                        
+
                         <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 3px solid #4caf50; margin-top: 15px;">
                             <div style="font-weight: 600; color: #2e7d32; font-size: 0.95rem; margin-bottom: 8px;">
                                 🙏 PRAYER FOCUS FOR THIS PERSON:
@@ -1523,7 +1534,7 @@
                                 "God, help me show <strong>${escapeHtml(entry.resentfulAt)}</strong> the same tolerance, pity, and patience that I would cheerfully grant a sick friend. Please grant them health, prosperity, and happiness. Help me to be helpful to them rather than angry."
                             </div>
                         </div>
-                        
+
                         ${entry.notes ? `
                             <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
                                 <div style="font-weight: 600; color: #555; font-size: 0.9rem; margin-bottom: 5px;">NOTES:</div>
@@ -1539,12 +1550,12 @@
 
         function printPrayerList() {
             const prayerEntries = entries.filter(entry => entry.prayerCommitment);
-            
+
             if (prayerEntries.length === 0) {
                 alert('No prayer commitments to print.');
                 return;
             }
-            
+
             const printContent = `
                 <html>
                 <head>
@@ -1562,7 +1573,7 @@
                 <body>
                     <h1>🙏 Daily Prayer List</h1>
                     <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
-                    
+
                     <div class="prayer-method">
                         <h3>Page 552 Prayer Method</h3>
                         <p><em>"If you have resentment you want to be free of, if you will pray for the person or thing that you resent, you will be free. Ask for their health, their prosperity, their happiness, and you will be free."</em></p>
@@ -1570,7 +1581,7 @@
                         <h4>Sample Prayer for Each Person:</h4>
                         <p style="font-style: italic; background: #f0f8ff; padding: 10px; border-radius: 5px;">"God, help me show [Name] the same tolerance, pity, and patience that I would cheerfully grant a sick friend. Please grant them health, prosperity, and happiness. Help me to be helpful to them rather than angry."</p>
                     </div>
-                    
+
                     ${prayerEntries.map(entry => `
                         <div class="prayer-item">
                             <div class="name">${escapeHtml(entry.resentfulAt)} (${capitalizeFirst(entry.category)})</div>
@@ -1589,7 +1600,7 @@
                 </body>
                 </html>
             `;
-            
+
             const printWindow = window.open('', '_blank');
             printWindow.document.write(printContent);
             printWindow.document.close();
@@ -1627,7 +1638,7 @@
                             ${entry.cause ? `<div class="detail"><span class="label">The Cause:</span> ${escapeHtml(entry.cause)}</div>` : ''}
                             ${entry.affects && entry.affects.length > 0 ? `
                                 <div class="detail">
-                                    <span class="label">Affects My:</span> 
+                                    <span class="label">Affects My:</span>
                                     ${entry.affects.map(affect => `<span class="affects">${formatAffect(affect)}</span>`).join('')}
                                 </div>
                             ` : ''}
@@ -1638,7 +1649,7 @@
                             ${entry.amendsNeeded ? `<div class="detail"><span class="label">Amends Needed:</span> ${escapeHtml(entry.amendsNeeded)}</div>` : ''}
                             ${entry.amendsStatus && entry.amendsStatus !== 'not-applicable' ? `
                                 <div class="detail">
-                                    <span class="label">Amends Status:</span> 
+                                    <span class="label">Amends Status:</span>
                                     ${getAmendsStatusText(entry.amendsStatus)}
                                     ${entry.amendsCompleteDate ? ` (Completed: ${formatDate(entry.amendsCompleteDate)})` : ''}
                                 </div>
@@ -1651,7 +1662,7 @@
                 </body>
                 </html>
             `;
-            
+
             const printWindow = window.open('', '_blank');
             printWindow.document.write(printContent);
             printWindow.document.close();
@@ -1660,7 +1671,7 @@
                 printWindow.print();
                 printWindow.close();
             }, 250);
-            
+
             closeModal('exportModal');
         }
 
@@ -1726,12 +1737,9 @@
             }
         }
 
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        }
+        // Modals can only be closed with Cancel/Close buttons or X to prevent accidental data loss
+        // Previously: window.onclick closed modals when clicking outside
+        // Removed to prevent users from losing entered data accidentally
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
@@ -1744,8 +1752,23 @@
                 showExportModal();
             }
             if (e.key === 'Escape') {
+                // Only close modals with Escape if it's not the main entry modal (addModal)
+                // or if the entry modal has no data entered to prevent accidental data loss
                 document.querySelectorAll('.modal').forEach(modal => {
-                    modal.style.display = 'none';
+                    if (modal.id === 'addModal') {
+                        // Check if any data has been entered in the form
+                        const hasData = document.getElementById('resentfulAt').value.trim() ||
+                                      document.getElementById('cause').value.trim() ||
+                                      document.getElementById('myPart').value.trim() ||
+                                      getCheckedValues().length > 0;
+
+                        if (!hasData || confirm('You have unsaved changes. Are you sure you want to close?')) {
+                            modal.style.display = 'none';
+                        }
+                    } else {
+                        // Other modals (export, import, prayer list) can close freely
+                        modal.style.display = 'none';
+                    }
                 });
             }
         });
@@ -1757,7 +1780,7 @@
             if (editingIndex >= 0) {
                 return;
             }
-            
+
             const draft = {
                 resentfulAt: document.getElementById('resentfulAt').value,
                 category: document.getElementById('category').value,
