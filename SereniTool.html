@@ -621,7 +621,7 @@
                 <input type="text" id="searchInput" placeholder="Search entries...">
             </div>
 
-            <button class="btn btn-success" onclick="showPage('addPage')">
+            <button class="btn btn-success" onclick="showAddNewEntryPage()">
                 ➕ Add New Entry
             </button>
 
@@ -737,7 +737,7 @@
         <div class="container">
             <button class="btn back-btn" onclick="showPage('mainPage')">← Back to List</button>
             <div class="page-content">
-                <h2>Add New Resentment Entry</h2>
+                <h2 id="entryFormTitle">Add New Resentment Entry</h2>
 
             <div class="tab-container">
                 <div class="tabs">
@@ -1213,6 +1213,20 @@
         // ============================================================================
 
         /**
+         * Show add page for creating a new entry
+         */
+        function showAddNewEntryPage() {
+            editingIndex = -1;
+            clearForm();
+
+            // Update form title
+            const formTitle = getElementSafely('entryFormTitle');
+            if (formTitle) formTitle.textContent = 'Add New Resentment Entry';
+
+            showPage('addPage');
+        }
+
+        /**
          * Switch between tabs in the entry form
          */
         function switchTab(tabId) {
@@ -1270,9 +1284,9 @@
                 targetPage.classList.add('active');
 
                 // Initialize page-specific content
-                if (pageId === 'addPage') {
+                if (pageId === 'addPage' && editingIndex === -1) {
+                    // Only clear form when adding new entry, not when editing
                     clearForm();
-                    editingIndex = -1;
                 } else if (pageId === 'prayerListPage') {
                     loadPrayerList();
                 }
@@ -1530,6 +1544,10 @@
                         if (checkbox) checkbox.checked = true;
                     }
                 });
+
+                // Update form title to indicate editing mode
+                const formTitle = getElementSafely('entryFormTitle');
+                if (formTitle) formTitle.textContent = 'Edit Resentment Entry';
 
                 // Show the add page
                 showPage('addPage');
@@ -2290,7 +2308,7 @@
 
                 if (e.ctrlKey && e.key === 'n') {
                     e.preventDefault();
-                    showPage('addPage');
+                    showAddNewEntryPage();
                 }
                 if (e.ctrlKey && e.key === 'e') {
                     e.preventDefault();
