@@ -976,6 +976,14 @@
                     dateGroup.style.display = 'none';
                 }
             });
+
+            // Prevent modal from closing when clicking on modal content
+            // Only allow closing via Cancel/Close buttons or X button
+            document.querySelectorAll('.modal-content').forEach(function(content) {
+                content.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent click from reaching modal background
+                });
+            });
         }
 
         function switchTab(tabId) {
