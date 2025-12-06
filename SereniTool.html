@@ -744,7 +744,7 @@
 
     <!-- Add Entry Modal -->
     <div id="addModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close" onclick="closeModal('addModal')">&times;</span>
             <h2>Add New Resentment Entry</h2>
 
@@ -904,7 +904,7 @@
 
     <!-- Export Modal -->
     <div id="exportModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close" onclick="closeModal('exportModal')">&times;</span>
             <h2>Export Your Inventory</h2>
             <p>Choose your export format:</p>
@@ -917,7 +917,7 @@
 
     <!-- Import Modal -->
     <div id="importModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close" onclick="closeModal('importModal')">&times;</span>
             <h2>Import Inventory Data</h2>
             <p>Select a JSON file exported from this application:</p>
@@ -931,7 +931,7 @@
 
     <!-- Prayer List Modal -->
     <div id="prayerListModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close" onclick="closeModal('prayerListModal')">&times;</span>
             <h2>🙏 Daily Prayer List</h2>
             <p>People you've committed to pray for (Page 552 method):</p>
@@ -975,14 +975,6 @@
                 } else {
                     dateGroup.style.display = 'none';
                 }
-            });
-
-            // Prevent modal from closing when clicking on modal content
-            // Only allow closing via Cancel/Close buttons or X button
-            document.querySelectorAll('.modal-content').forEach(function(content) {
-                content.addEventListener('click', function(e) {
-                    e.stopPropagation(); // Prevent click from reaching modal background
-                });
             });
         }
 
