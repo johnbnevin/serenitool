@@ -943,243 +943,654 @@
     </div>
 
     <script>
-        // Data storage and management
-        let entries = JSON.parse(localStorage.getItem('resentmentEntries')) || [];
+        // ============================================================================
+        // CONSTANTS AND CONFIGURATION
+        // ============================================================================
+
+        const STORAGE_KEY_ENTRIES = 'resentmentEntries';
+        const STORAGE_KEY_DRAFT = 'resentmentDraft';
+
+        const CHECKBOX_IDS = ['selfEsteem', 'security', 'ambitions', 'personalRel', 'sexRel', 'pride', 'pocketbook'];
+
+        const CHECKBOX_VALUE_MAP = {
+            'self-esteem': 'selfEsteem',
+            'security': 'security',
+            'ambitions': 'ambitions',
+            'personal-relationships': 'personalRel',
+            'sex-relations': 'sexRel',
+            'pride': 'pride',
+            'pocketbook': 'pocketbook'
+        };
+
+        // ============================================================================
+        // STATE MANAGEMENT
+        // ============================================================================
+
+        let entries = [];
         let editingIndex = -1;
+        let draftTimer = null;
 
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            renderEntries();
-            updateStats();
-            setupEventListeners();
-        });
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
 
+        /**
+         * Initialize the application on page load
+         */
+        function initializeApp() {
+            try {
+                loadEntriesFromStorage();
+                renderEntries();
+                updateStats();
+                setupEventListeners();
+            } catch (error) {
+                handleError('Failed to initialize app', error);
+            }
+        }
+
+        // Initialize the app when DOM is ready
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // ============================================================================
+        // STORAGE FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Load entries from localStorage with error handling
+         */
+        function loadEntriesFromStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_ENTRIES);
+                entries = stored ? JSON.parse(stored) : [];
+
+                // Validate entries structure
+                if (!Array.isArray(entries)) {
+                    console.error('Invalid entries format in storage, resetting to empty array');
+                    entries = [];
+                }
+            } catch (error) {
+                handleError('Failed to load entries from storage', error);
+                entries = [];
+            }
+        }
+
+        /**
+         * Save entries to localStorage with error handling
+         */
+        function saveEntriesToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY_ENTRIES, JSON.stringify(entries));
+                return true;
+            } catch (error) {
+                handleError('Failed to save entries to storage', error);
+                return false;
+            }
+        }
+
+        /**
+         * Save draft to localStorage
+         */
+        function saveDraftToStorage(draftData) {
+            try {
+                localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(draftData));
+                return true;
+            } catch (error) {
+                console.error('Failed to save draft:', error);
+                return false;
+            }
+        }
+
+        /**
+         * Load draft from localStorage
+         */
+        function loadDraftFromStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY_DRAFT);
+                return stored ? JSON.parse(stored) : null;
+            } catch (error) {
+                console.error('Failed to load draft:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Clear draft from localStorage
+         */
+        function clearDraftFromStorage() {
+            try {
+                localStorage.removeItem(STORAGE_KEY_DRAFT);
+            } catch (error) {
+                console.error('Failed to clear draft:', error);
+            }
+        }
+
+        // ============================================================================
+        // EVENT LISTENERS
+        // ============================================================================
+
+        /**
+         * Set up all event listeners
+         */
         function setupEventListeners() {
-            document.getElementById('categoryFilter').addEventListener('change', filterEntries);
-            document.getElementById('affectsFilter').addEventListener('change', filterEntries);
-            document.getElementById('searchInput').addEventListener('input', filterEntries);
+            try {
+                // Filter listeners
+                const categoryFilter = getElementSafely('categoryFilter');
+                const affectsFilter = getElementSafely('affectsFilter');
+                const searchInput = getElementSafely('searchInput');
 
-            // Add amends status change listener
-            document.getElementById('amendsStatus').addEventListener('change', function() {
-                const dateGroup = document.getElementById('amendsCompleteDateGroup');
-                if (this.value === 'complete') {
+                if (categoryFilter) categoryFilter.addEventListener('change', filterEntries);
+                if (affectsFilter) affectsFilter.addEventListener('change', filterEntries);
+                if (searchInput) searchInput.addEventListener('input', filterEntries);
+
+                // Amends status change listener
+                const amendsStatus = getElementSafely('amendsStatus');
+                if (amendsStatus) {
+                    amendsStatus.addEventListener('change', handleAmendsStatusChange);
+                }
+
+                // Auto-save listener for add page
+                const addPage = getElementSafely('addPage');
+                if (addPage) {
+                    addPage.addEventListener('input', handleFormInput);
+                }
+            } catch (error) {
+                handleError('Failed to setup event listeners', error);
+            }
+        }
+
+        /**
+         * Handle amends status change
+         */
+        function handleAmendsStatusChange(event) {
+            try {
+                const dateGroup = getElementSafely('amendsCompleteDateGroup');
+                if (!dateGroup) return;
+
+                if (event.target.value === 'complete') {
                     dateGroup.style.display = 'block';
+
                     // Set today's date if not already set
-                    const dateInput = document.getElementById('amendsCompleteDate');
-                    if (!dateInput.value) {
+                    const dateInput = getElementSafely('amendsCompleteDate');
+                    if (dateInput && !dateInput.value) {
                         dateInput.value = new Date().toISOString().split('T')[0];
                     }
                 } else {
                     dateGroup.style.display = 'none';
                 }
-            });
+            } catch (error) {
+                console.error('Error handling amends status change:', error);
+            }
         }
 
+        /**
+         * Handle form input for auto-save
+         */
+        function handleFormInput() {
+            // Only auto-save if we're not editing an existing entry
+            if (editingIndex === -1) {
+                clearTimeout(draftTimer);
+                draftTimer = setTimeout(saveFormDraft, 2000);
+            }
+        }
+
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Safely get element by ID with error handling
+         */
+        function getElementSafely(elementId) {
+            try {
+                const element = document.getElementById(elementId);
+                if (!element) {
+                    console.warn(`Element not found: ${elementId}`);
+                }
+                return element;
+            } catch (error) {
+                console.error(`Error getting element ${elementId}:`, error);
+                return null;
+            }
+        }
+
+        /**
+         * Handle errors consistently
+         */
+        function handleError(message, error) {
+            console.error(message, error);
+            alert(`${message}. Please try again or refresh the page.`);
+        }
+
+        /**
+         * Escape HTML to prevent XSS
+         */
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        /**
+         * Capitalize first letter of string
+         */
+        function capitalizeFirst(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        /**
+         * Format date string
+         */
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            try {
+                return new Date(dateString).toLocaleDateString();
+            } catch (error) {
+                console.error('Error formatting date:', error);
+                return dateString;
+            }
+        }
+
+        /**
+         * Format affect value for display
+         */
+        function formatAffect(affect) {
+            const mapping = {
+                'self-esteem': 'Self-Esteem',
+                'security': 'Security',
+                'ambitions': 'Ambitions',
+                'personal-relationships': 'Personal Relations',
+                'sex-relations': 'Sex Relations',
+                'pride': 'Pride',
+                'pocketbook': 'Financial'
+            };
+            return mapping[affect] || affect;
+        }
+
+        // ============================================================================
+        // NAVIGATION FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Switch between tabs in the entry form
+         */
         function switchTab(tabId) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
+            try {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
 
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+                // Remove active class from all tab buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
 
-            // Show selected tab and activate button
-            document.getElementById(tabId).classList.add('active');
-            event.target.classList.add('active');
+                // Show selected tab and activate button
+                const selectedTab = getElementSafely(tabId);
+                if (selectedTab) {
+                    selectedTab.classList.add('active');
+                }
+
+                if (event && event.target) {
+                    event.target.classList.add('active');
+                }
+            } catch (error) {
+                console.error('Error switching tabs:', error);
+            }
         }
 
+        /**
+         * Show a specific page and handle page transitions
+         */
         function showPage(pageId) {
-            // Check for unsaved data when leaving addPage
-            if (pageId !== 'addPage') {
-                const currentPage = document.querySelector('.page.active');
-                if (currentPage && currentPage.id === 'addPage') {
-                    const hasData = document.getElementById('resentfulAt').value.trim() ||
-                                  document.getElementById('cause').value.trim() ||
-                                  document.getElementById('myPart').value.trim() ||
-                                  getCheckedValues().length > 0;
-
-                    if (hasData && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
-                        return;
+            try {
+                // Check for unsaved data when leaving addPage
+                if (pageId !== 'addPage') {
+                    const currentPage = document.querySelector('.page.active');
+                    if (currentPage && currentPage.id === 'addPage') {
+                        if (hasUnsavedFormData() && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                            return;
+                        }
                     }
                 }
-            }
 
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
+                // Hide all pages
+                document.querySelectorAll('.page').forEach(page => {
+                    page.classList.remove('active');
+                });
 
-            // Show selected page
-            document.getElementById(pageId).classList.add('active');
-
-            // Initialize page-specific content
-            if (pageId === 'addPage') {
-                clearForm();
-                editingIndex = -1;
-            } else if (pageId === 'prayerListPage') {
-                loadPrayerList();
-            }
-
-            // Scroll to top
-            window.scrollTo(0, 0);
-        }
-
-        function clearForm() {
-            document.getElementById('resentfulAt').value = '';
-            document.getElementById('category').value = 'person';
-            document.getElementById('cause').value = '';
-            document.getElementById('myPart').value = '';
-            document.getElementById('characterDefect').value = '';
-            document.getElementById('underlyingHurt').value = '';
-            document.getElementById('shouldHaveDone').value = '';
-            document.getElementById('amendsNeeded').value = '';
-            document.getElementById('amendsStatus').value = 'not-applicable';
-            document.getElementById('amendsCompleteDate').value = '';
-            document.getElementById('amendsCompleteDateGroup').style.display = 'none';
-            document.getElementById('notes').value = '';
-
-            // Clear checkboxes
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-
-            // Switch back to first tab
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.getElementById('basic').classList.add('active');
-            document.querySelector('.tab-btn').classList.add('active');
-        }
-
-        function saveEntry() {
-            const entry = {
-                id: Date.now(),
-                resentfulAt: document.getElementById('resentfulAt').value,
-                category: document.getElementById('category').value,
-                cause: document.getElementById('cause').value,
-                affects: getCheckedValues(),
-                myPart: document.getElementById('myPart').value,
-                characterDefect: document.getElementById('characterDefect').value,
-                underlyingHurt: document.getElementById('underlyingHurt').value,
-                shouldHaveDone: document.getElementById('shouldHaveDone').value,
-                amendsNeeded: document.getElementById('amendsNeeded').value,
-                amendsStatus: document.getElementById('amendsStatus').value,
-                amendsCompleteDate: document.getElementById('amendsCompleteDate').value,
-                prayerCommitment: document.getElementById('prayerCommitment').checked,
-                prayerCompleted: document.getElementById('prayerCompleted').checked,
-                notes: document.getElementById('notes').value,
-                dateCreated: new Date().toISOString(),
-                dateModified: new Date().toISOString()
-            };
-
-            if (!entry.resentfulAt.trim()) {
-                alert('Please fill in who/what you are resentful at.');
-                return;
-            }
-
-            if (editingIndex >= 0) {
-                entries[editingIndex] = { ...entries[editingIndex], ...entry };
-            } else {
-                entries.push(entry);
-            }
-
-            localStorage.setItem('resentmentEntries', JSON.stringify(entries));
-            renderEntries();
-            updateStats();
-            showPage('mainPage');
-        }
-
-        function getCheckedValues() {
-            const checkboxes = ['selfEsteem', 'security', 'ambitions', 'personalRel', 'sexRel', 'pride', 'pocketbook'];
-            return checkboxes.filter(id => document.getElementById(id).checked)
-                           .map(id => document.getElementById(id).value);
-        }
-
-        function editEntry(index) {
-            const entry = entries[index];
-            editingIndex = index;
-
-            // Fill form with entry data
-            document.getElementById('resentfulAt').value = entry.resentfulAt;
-            document.getElementById('category').value = entry.category;
-            document.getElementById('cause').value = entry.cause || '';
-            document.getElementById('myPart').value = entry.myPart || '';
-            document.getElementById('characterDefect').value = entry.characterDefect || '';
-            document.getElementById('underlyingHurt').value = entry.underlyingHurt || '';
-            document.getElementById('shouldHaveDone').value = entry.shouldHaveDone || '';
-            document.getElementById('amendsNeeded').value = entry.amendsNeeded || '';
-            document.getElementById('amendsStatus').value = entry.amendsStatus || 'not-applicable';
-            document.getElementById('amendsCompleteDate').value = entry.amendsCompleteDate || '';
-            document.getElementById('notes').value = entry.notes || '';
-            document.getElementById('prayerCommitment').checked = entry.prayerCommitment || false;
-            document.getElementById('prayerCompleted').checked = entry.prayerCompleted || false;
-
-            // Show/hide amends date field based on status
-            const dateGroup = document.getElementById('amendsCompleteDateGroup');
-            if (entry.amendsStatus === 'complete') {
-                dateGroup.style.display = 'block';
-            } else {
-                dateGroup.style.display = 'none';
-            }
-
-            // Set checkboxes
-            const checkboxMap = {
-                'self-esteem': 'selfEsteem',
-                'security': 'security',
-                'ambitions': 'ambitions',
-                'personal-relationships': 'personalRel',
-                'sex-relations': 'sexRel',
-                'pride': 'pride',
-                'pocketbook': 'pocketbook'
-            };
-
-            // First clear all checkboxes
-            Object.values(checkboxMap).forEach(checkboxId => {
-                document.getElementById(checkboxId).checked = false;
-            });
-
-            // Then set the ones that should be checked
-            (entry.affects || []).forEach(affect => {
-                const checkboxId = checkboxMap[affect];
-                if (checkboxId) {
-                    document.getElementById(checkboxId).checked = true;
+                // Show selected page
+                const targetPage = getElementSafely(pageId);
+                if (!targetPage) {
+                    console.error(`Page not found: ${pageId}`);
+                    return;
                 }
-            });
+                targetPage.classList.add('active');
 
-            // Show the add page
-            showPage('addPage');
+                // Initialize page-specific content
+                if (pageId === 'addPage') {
+                    clearForm();
+                    editingIndex = -1;
+                } else if (pageId === 'prayerListPage') {
+                    loadPrayerList();
+                }
+
+                // Scroll to top
+                window.scrollTo(0, 0);
+            } catch (error) {
+                handleError('Error showing page', error);
+            }
         }
 
+        /**
+         * Check if form has unsaved data
+         */
+        function hasUnsavedFormData() {
+            try {
+                const resentfulAt = getElementSafely('resentfulAt');
+                const cause = getElementSafely('cause');
+                const myPart = getElementSafely('myPart');
+
+                return (resentfulAt && resentfulAt.value.trim()) ||
+                       (cause && cause.value.trim()) ||
+                       (myPart && myPart.value.trim()) ||
+                       getCheckedValues().length > 0;
+            } catch (error) {
+                console.error('Error checking unsaved data:', error);
+                return false;
+            }
+        }
+
+        // ============================================================================
+        // FORM MANAGEMENT
+        // ============================================================================
+
+        /**
+         * Clear the entry form
+         */
+        function clearForm() {
+            try {
+                // Clear text inputs
+                const fields = [
+                    'resentfulAt', 'cause', 'myPart', 'characterDefect',
+                    'underlyingHurt', 'shouldHaveDone', 'amendsNeeded',
+                    'amendsCompleteDate', 'notes'
+                ];
+
+                fields.forEach(fieldId => {
+                    const field = getElementSafely(fieldId);
+                    if (field) field.value = '';
+                });
+
+                // Reset select elements
+                const category = getElementSafely('category');
+                if (category) category.value = 'person';
+
+                const amendsStatus = getElementSafely('amendsStatus');
+                if (amendsStatus) amendsStatus.value = 'not-applicable';
+
+                // Hide amends date group
+                const dateGroup = getElementSafely('amendsCompleteDateGroup');
+                if (dateGroup) dateGroup.style.display = 'none';
+
+                // Clear checkboxes
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = false;
+                });
+
+                // Switch back to first tab
+                document.querySelectorAll('.tab-content').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                const basicTab = getElementSafely('basic');
+                if (basicTab) basicTab.classList.add('active');
+
+                const firstTabBtn = document.querySelector('.tab-btn');
+                if (firstTabBtn) firstTabBtn.classList.add('active');
+            } catch (error) {
+                console.error('Error clearing form:', error);
+            }
+        }
+
+        /**
+         * Get form data from the entry form
+         */
+        function getFormData() {
+            try {
+                return {
+                    id: Date.now(),
+                    resentfulAt: getElementSafely('resentfulAt')?.value || '',
+                    category: getElementSafely('category')?.value || 'person',
+                    cause: getElementSafely('cause')?.value || '',
+                    affects: getCheckedValues(),
+                    myPart: getElementSafely('myPart')?.value || '',
+                    characterDefect: getElementSafely('characterDefect')?.value || '',
+                    underlyingHurt: getElementSafely('underlyingHurt')?.value || '',
+                    shouldHaveDone: getElementSafely('shouldHaveDone')?.value || '',
+                    amendsNeeded: getElementSafely('amendsNeeded')?.value || '',
+                    amendsStatus: getElementSafely('amendsStatus')?.value || 'not-applicable',
+                    amendsCompleteDate: getElementSafely('amendsCompleteDate')?.value || '',
+                    prayerCommitment: getElementSafely('prayerCommitment')?.checked || false,
+                    prayerCompleted: getElementSafely('prayerCompleted')?.checked || false,
+                    notes: getElementSafely('notes')?.value || '',
+                    dateCreated: new Date().toISOString(),
+                    dateModified: new Date().toISOString()
+                };
+            } catch (error) {
+                console.error('Error getting form data:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Save entry from form
+         */
+        function saveEntry() {
+            try {
+                const entry = getFormData();
+
+                if (!entry) {
+                    alert('Error reading form data. Please try again.');
+                    return;
+                }
+
+                if (!entry.resentfulAt.trim()) {
+                    alert('Please fill in who/what you are resentful at.');
+                    return;
+                }
+
+                if (editingIndex >= 0) {
+                    // Preserve original creation date when editing
+                    const originalEntry = entries[editingIndex];
+                    entry.dateCreated = originalEntry.dateCreated || entry.dateCreated;
+                    entry.id = originalEntry.id || entry.id;
+                    entries[editingIndex] = entry;
+                } else {
+                    entries.push(entry);
+                }
+
+                if (saveEntriesToStorage()) {
+                    clearDraftFromStorage();
+                    renderEntries();
+                    updateStats();
+                    showPage('mainPage');
+                } else {
+                    alert('Failed to save entry. Please try again.');
+                }
+            } catch (error) {
+                handleError('Error saving entry', error);
+            }
+        }
+
+        /**
+         * Get checked checkbox values
+         */
+        function getCheckedValues() {
+            try {
+                return CHECKBOX_IDS
+                    .filter(id => {
+                        const checkbox = getElementSafely(id);
+                        return checkbox && checkbox.checked;
+                    })
+                    .map(id => {
+                        const checkbox = getElementSafely(id);
+                        return checkbox ? checkbox.value : null;
+                    })
+                    .filter(value => value !== null);
+            } catch (error) {
+                console.error('Error getting checked values:', error);
+                return [];
+            }
+        }
+
+        /**
+         * Save current form state as draft
+         */
+        function saveFormDraft() {
+            // Don't save draft if editing existing entry
+            if (editingIndex >= 0) return;
+
+            try {
+                const draftData = getFormData();
+                if (draftData && (draftData.resentfulAt || draftData.cause)) {
+                    saveDraftToStorage(draftData);
+                }
+            } catch (error) {
+                console.error('Error saving draft:', error);
+            }
+        }
+
+        // ============================================================================
+        // ENTRY MANAGEMENT
+        // ============================================================================
+
+        /**
+         * Load entry data into form for editing
+         */
+        function editEntry(index) {
+            try {
+                if (index < 0 || index >= entries.length) {
+                    console.error('Invalid entry index:', index);
+                    return;
+                }
+
+                const entry = entries[index];
+                editingIndex = index;
+
+                // Fill text fields
+                const textFields = {
+                    'resentfulAt': entry.resentfulAt,
+                    'category': entry.category,
+                    'cause': entry.cause,
+                    'myPart': entry.myPart,
+                    'characterDefect': entry.characterDefect,
+                    'underlyingHurt': entry.underlyingHurt,
+                    'shouldHaveDone': entry.shouldHaveDone,
+                    'amendsNeeded': entry.amendsNeeded,
+                    'amendsStatus': entry.amendsStatus,
+                    'amendsCompleteDate': entry.amendsCompleteDate,
+                    'notes': entry.notes
+                };
+
+                Object.entries(textFields).forEach(([fieldId, value]) => {
+                    const field = getElementSafely(fieldId);
+                    if (field) field.value = value || '';
+                });
+
+                // Set checkboxes
+                const prayerCommitment = getElementSafely('prayerCommitment');
+                if (prayerCommitment) prayerCommitment.checked = entry.prayerCommitment || false;
+
+                const prayerCompleted = getElementSafely('prayerCompleted');
+                if (prayerCompleted) prayerCompleted.checked = entry.prayerCompleted || false;
+
+                // Show/hide amends date field
+                const dateGroup = getElementSafely('amendsCompleteDateGroup');
+                if (dateGroup) {
+                    dateGroup.style.display = entry.amendsStatus === 'complete' ? 'block' : 'none';
+                }
+
+                // Clear all checkboxes first
+                Object.values(CHECKBOX_VALUE_MAP).forEach(checkboxId => {
+                    const checkbox = getElementSafely(checkboxId);
+                    if (checkbox) checkbox.checked = false;
+                });
+
+                // Set the appropriate checkboxes
+                (entry.affects || []).forEach(affect => {
+                    const checkboxId = CHECKBOX_VALUE_MAP[affect];
+                    if (checkboxId) {
+                        const checkbox = getElementSafely(checkboxId);
+                        if (checkbox) checkbox.checked = true;
+                    }
+                });
+
+                // Show the add page
+                showPage('addPage');
+            } catch (error) {
+                handleError('Error loading entry for editing', error);
+            }
+        }
+
+        /**
+         * Delete an entry
+         */
         function deleteEntry(index) {
-            if (confirm('Are you sure you want to delete this entry?')) {
-                entries.splice(index, 1);
-                localStorage.setItem('resentmentEntries', JSON.stringify(entries));
-                renderEntries();
-                updateStats();
+            try {
+                if (index < 0 || index >= entries.length) {
+                    console.error('Invalid entry index:', index);
+                    return;
+                }
+
+                if (confirm('Are you sure you want to delete this entry?')) {
+                    entries.splice(index, 1);
+
+                    if (saveEntriesToStorage()) {
+                        renderEntries();
+                        updateStats();
+                    } else {
+                        alert('Failed to delete entry. Please try again.');
+                    }
+                }
+            } catch (error) {
+                handleError('Error deleting entry', error);
             }
         }
 
+        // ============================================================================
+        // RENDERING FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Render all entries to the page
+         */
         function renderEntries() {
-            const container = document.getElementById('entriesContainer');
-            const filteredEntries = getFilteredEntries();
+            try {
+                const container = getElementSafely('entriesContainer');
+                if (!container) {
+                    console.error('Entries container not found');
+                    return;
+                }
 
-            if (filteredEntries.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: #6c757d;">
-                        <h3>No entries yet</h3>
-                        <p>Click "Add New Entry" to begin your resentment inventory.</p>
-                    </div>
-                `;
-                return;
-            }
+                const filteredEntries = getFilteredEntries();
 
-            container.innerHTML = filteredEntries.map((entry, index) => `
+                if (filteredEntries.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                            <h3>No entries yet</h3>
+                            <p>Click "Add New Entry" to begin your resentment inventory.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = filteredEntries.map((entry) => `
                 <div class="entry-card">
                     <div class="entry-header">
                         <div class="entry-title">${escapeHtml(entry.resentfulAt)}</div>
@@ -1286,120 +1697,200 @@
                     </div>
                 </div>
             `).join('');
+            } catch (error) {
+                handleError('Error rendering entries', error);
+            }
         }
 
+        /**
+         * Get filtered entries based on current filter settings
+         */
         function getFilteredEntries() {
-            let filtered = [...entries];
+            try {
+                let filtered = [...entries];
 
-            const categoryFilter = document.getElementById('categoryFilter').value;
-            const affectsFilter = document.getElementById('affectsFilter').value;
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                const categoryFilter = getElementSafely('categoryFilter');
+                const affectsFilter = getElementSafely('affectsFilter');
+                const searchInput = getElementSafely('searchInput');
 
-            if (categoryFilter) {
-                filtered = filtered.filter(entry => entry.category === categoryFilter);
+                const categoryValue = categoryFilter ? categoryFilter.value : '';
+                const affectsValue = affectsFilter ? affectsFilter.value : '';
+                const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+                if (categoryValue) {
+                    filtered = filtered.filter(entry => entry.category === categoryValue);
+                }
+
+            if (affectsValue) {
+                    filtered = filtered.filter(entry =>
+                        entry.affects && entry.affects.includes(affectsValue)
+                    );
+                }
+
+                if (searchTerm) {
+                    filtered = filtered.filter(entry =>
+                        (entry.resentfulAt && entry.resentfulAt.toLowerCase().includes(searchTerm)) ||
+                        (entry.cause && entry.cause.toLowerCase().includes(searchTerm)) ||
+                        (entry.myPart && entry.myPart.toLowerCase().includes(searchTerm))
+                    );
+                }
+
+                return filtered.sort((a, b) => {
+                    const dateA = new Date(a.dateCreated || 0);
+                    const dateB = new Date(b.dateCreated || 0);
+                    return dateB - dateA;
+                });
+            } catch (error) {
+                console.error('Error filtering entries:', error);
+                return [];
             }
-
-            if (affectsFilter) {
-                filtered = filtered.filter(entry =>
-                    entry.affects && entry.affects.includes(affectsFilter)
-                );
-            }
-
-            if (searchTerm) {
-                filtered = filtered.filter(entry =>
-                    entry.resentfulAt.toLowerCase().includes(searchTerm) ||
-                    (entry.cause && entry.cause.toLowerCase().includes(searchTerm)) ||
-                    (entry.myPart && entry.myPart.toLowerCase().includes(searchTerm))
-                );
-            }
-
-            return filtered.sort((a, b) => new Date(b.dateCreated) - new Date(a.dateCreated));
         }
 
+        /**
+         * Apply filters and re-render entries
+         */
         function filterEntries() {
             renderEntries();
         }
 
+        // ============================================================================
+        // STATISTICS FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Update statistics display
+         */
         function updateStats() {
-            const total = entries.length;
-            const completed = entries.filter(entry =>
-                entry.myPart && entry.myPart.trim() &&
-                entry.shouldHaveDone && entry.shouldHaveDone.trim()
-            ).length;
+            try {
+                const total = entries.length;
+                const completed = entries.filter(entry =>
+                    entry.myPart && entry.myPart.trim() &&
+                    entry.shouldHaveDone && entry.shouldHaveDone.trim()
+                ).length;
 
-            // Add amends stats to the sidebar
-            const amendsNeeded = entries.filter(entry =>
-                entry.amendsStatus === 'pending'
-            ).length;
+                const amendsNeeded = entries.filter(entry =>
+                    entry.amendsStatus === 'pending'
+                ).length;
 
-            const amendsComplete = entries.filter(entry =>
-                entry.amendsStatus === 'complete'
-            ).length;
+                const amendsComplete = entries.filter(entry =>
+                    entry.amendsStatus === 'complete'
+                ).length;
 
-            document.getElementById('totalEntries').textContent = total;
-            document.getElementById('completedEntries').textContent = completed;
-            document.getElementById('amendsNeeded').textContent = amendsNeeded;
-            document.getElementById('amendsComplete').textContent = amendsComplete;
+                const totalEntries = getElementSafely('totalEntries');
+                const completedEntries = getElementSafely('completedEntries');
+                const amendsNeededEl = getElementSafely('amendsNeeded');
+                const amendsCompleteEl = getElementSafely('amendsComplete');
+                const progressFill = getElementSafely('progressFill');
 
-            const percentage = total > 0 ? (completed / total) * 100 : 0;
-            document.getElementById('progressFill').style.width = `${percentage}%`;
+                if (totalEntries) totalEntries.textContent = total;
+                if (completedEntries) completedEntries.textContent = completed;
+                if (amendsNeededEl) amendsNeededEl.textContent = amendsNeeded;
+                if (amendsCompleteEl) amendsCompleteEl.textContent = amendsComplete;
+
+                const percentage = total > 0 ? (completed / total) * 100 : 0;
+                if (progressFill) progressFill.style.width = `${percentage}%`;
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
         }
 
+        // ============================================================================
+        // DATA MANAGEMENT FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Clear all data with confirmation
+         */
         function clearAllData() {
-            if (confirm('Are you sure you want to delete ALL entries? This cannot be undone.')) {
-                if (confirm('This will permanently delete your entire inventory. Are you absolutely sure?')) {
-                    entries = [];
-                    localStorage.removeItem('resentmentEntries');
-                    renderEntries();
-                    updateStats();
+            try {
+                if (!confirm('Are you sure you want to delete ALL entries? This cannot be undone.')) {
+                    return;
                 }
+
+                if (!confirm('This will permanently delete your entire inventory. Are you absolutely sure?')) {
+                    return;
+                }
+
+                entries = [];
+                localStorage.removeItem(STORAGE_KEY_ENTRIES);
+                renderEntries();
+                updateStats();
+            } catch (error) {
+                handleError('Error clearing data', error);
             }
         }
 
+        /**
+         * Export data to JSON file
+         */
         function exportToJSON() {
-            const dataStr = JSON.stringify(entries, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            try {
+                if (entries.length === 0) {
+                    alert('No entries to export.');
+                    return;
+                }
 
-            const exportFileDefaultName = `resentment-inventory-${new Date().toISOString().split('T')[0]}.json`;
+                const dataStr = JSON.stringify(entries, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                const exportFileName = `serenitool-inventory-${new Date().toISOString().split('T')[0]}.json`;
 
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileName);
+                linkElement.click();
 
-            showPage('mainPage');
+                showPage('mainPage');
+            } catch (error) {
+                handleError('Error exporting data', error);
+            }
         }
 
+        /**
+         * Import data from JSON file
+         */
         function importData() {
-            const fileInput = document.getElementById('importFile');
-            const file = fileInput.files[0];
+            try {
+                const fileInput = getElementSafely('importFile');
+                if (!fileInput) {
+                    alert('Import file input not found.');
+                    return;
+                }
 
-            if (!file) {
-                alert('Please select a file to import.');
-                return;
-            }
+                const file = fileInput.files[0];
+                if (!file) {
+                    alert('Please select a file to import.');
+                    return;
+                }
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
+                const reader = new FileReader();
 
-                    if (!Array.isArray(importedData)) {
-                        throw new Error('Invalid file format');
-                    }
+                reader.onerror = function() {
+                    alert('Error reading file. Please try again.');
+                };
 
-                    // Validate data structure
-                    const validEntry = importedData.every(entry =>
-                        entry.hasOwnProperty('resentfulAt') &&
-                        entry.hasOwnProperty('dateCreated')
-                    );
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
 
-                    if (!validEntry) {
-                        throw new Error('Invalid data structure');
-                    }
+                        if (!Array.isArray(importedData)) {
+                            throw new Error('Invalid file format - expected an array of entries');
+                        }
 
-                    if (confirm(`Import ${importedData.length} entries? This will add to your existing data.`)) {
-                        // Add unique IDs to avoid conflicts
+                        // Validate data structure
+                        const isValid = importedData.every(entry =>
+                            entry && typeof entry === 'object' &&
+                            entry.hasOwnProperty('resentfulAt')
+                        );
+
+                        if (!isValid) {
+                            throw new Error('Invalid data structure - entries missing required fields');
+                        }
+
+                        if (!confirm(`Import ${importedData.length} entries? This will add to your existing data.`)) {
+                            return;
+                        }
+
+                        // Add unique IDs and import timestamp to avoid conflicts
                         const processedData = importedData.map(entry => ({
                             ...entry,
                             id: Date.now() + Math.random(),
@@ -1407,28 +1898,48 @@
                         }));
 
                         entries = entries.concat(processedData);
-                        localStorage.setItem('resentmentEntries', JSON.stringify(entries));
-                        renderEntries();
-                        updateStats();
-                        showPage('mainPage');
 
-                        alert(`Successfully imported ${importedData.length} entries.`);
+                        if (saveEntriesToStorage()) {
+                            renderEntries();
+                            updateStats();
+                            showPage('mainPage');
+                            alert(`Successfully imported ${importedData.length} entries.`);
+                        } else {
+                            alert('Failed to save imported data.');
+                        }
+
+                    } catch (error) {
+                        alert('Error importing file: ' + error.message);
                     }
+                };
 
-                } catch (error) {
-                    alert('Error importing file: ' + error.message);
-                }
-            };
-
-            reader.readAsText(file);
+                reader.readAsText(file);
+            } catch (error) {
+                handleError('Error importing data', error);
+            }
         }
 
-        function loadPrayerList() {
-            const prayerEntries = entries.filter(entry => entry.prayerCommitment && !entry.prayerCompleted);
-            const container = document.getElementById('prayerListContent');
+        // ============================================================================
+        // PRAYER LIST FUNCTIONS
+        // ============================================================================
 
-            if (prayerEntries.length === 0) {
-                container.innerHTML = `
+        /**
+         * Load and display prayer list
+         */
+        function loadPrayerList() {
+            try {
+                const prayerEntries = entries.filter(entry =>
+                    entry.prayerCommitment && !entry.prayerCompleted
+                );
+
+                const container = getElementSafely('prayerListContent');
+                if (!container) {
+                    console.error('Prayer list container not found');
+                    return;
+                }
+
+                if (prayerEntries.length === 0) {
+                    container.innerHTML = `
                     <div style="text-align: center; padding: 20px; color: #6c757d;">
                         <p>No prayer commitments yet.</p>
                         <p>Check the "Prayer Commitment" box when adding entries to build your prayer list.</p>
@@ -1545,17 +2056,28 @@
                     </div>
                 `).join('')}
             `;
+            } catch (error) {
+                handleError('Error loading prayer list', error);
+            }
         }
 
+        // ============================================================================
+        // PRINTING FUNCTIONS
+        // ============================================================================
+
+        /**
+         * Print prayer list
+         */
         function printPrayerList() {
-            const prayerEntries = entries.filter(entry => entry.prayerCommitment);
+            try {
+                const prayerEntries = entries.filter(entry => entry.prayerCommitment);
 
-            if (prayerEntries.length === 0) {
-                alert('No prayer commitments to print.');
-                return;
-            }
+                if (prayerEntries.length === 0) {
+                    alert('No prayer commitments to print.');
+                    return;
+                }
 
-            const printContent = `
+                const printContent = `
                 <html>
                 <head>
                     <title>Prayer List - ${new Date().toLocaleDateString()}</title>
@@ -1600,17 +2122,29 @@
                 </html>
             `;
 
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
+                const printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    alert('Unable to open print window. Please check your popup blocker settings.');
+                    return;
+                }
+
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 250);
+            } catch (error) {
+                handleError('Error printing prayer list', error);
+            }
         }
 
+        /**
+         * Print full inventory
+         */
         function printInventory() {
+            try {
             const printContent = `
                 <html>
                 <head>
@@ -1662,56 +2196,33 @@
                 </html>
             `;
 
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printContent);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-                printWindow.close();
-            }, 250);
+                const printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    alert('Unable to open print window. Please check your popup blocker settings.');
+                    return;
+                }
 
-            showPage('mainPage');
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 250);
+
+                showPage('mainPage');
+            } catch (error) {
+                handleError('Error printing inventory', error);
+            }
         }
 
-        function togglePrayerCompletion(index) {
-            const entry = entries[index];
-            entry.prayerCompleted = !entry.prayerCompleted;
-            localStorage.setItem('resentmentEntries', JSON.stringify(entries));
-            loadPrayerList(); // Refresh the prayer list display
-        }
+        // ============================================================================
+        // AMENDS STATUS FUNCTIONS
+        // ============================================================================
 
-        // Utility functions
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function capitalizeFirst(str) {
-            if (!str) return '';
-            return str.charAt(0).toUpperCase() + str.slice(1);
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            return new Date(dateString).toLocaleDateString();
-        }
-
-        function formatAffect(affect) {
-            const mapping = {
-                'self-esteem': 'Self-Esteem',
-                'security': 'Security',
-                'ambitions': 'Ambitions',
-                'personal-relationships': 'Personal Relations',
-                'sex-relations': 'Sex Relations',
-                'pride': 'Pride',
-                'pocketbook': 'Financial'
-            };
-            return mapping[affect] || affect;
-        }
-
+        /**
+         * Get CSS class for amends status
+         */
         function getAmendsStatusClass(status) {
             switch(status) {
                 case 'pending': return 'amends-pending';
@@ -1720,6 +2231,9 @@
             }
         }
 
+        /**
+         * Get icon for amends status
+         */
         function getAmendsStatusIcon(status) {
             switch(status) {
                 case 'pending': return '⏳';
@@ -1728,6 +2242,9 @@
             }
         }
 
+        /**
+         * Get text for amends status
+         */
         function getAmendsStatusText(status) {
             switch(status) {
                 case 'pending': return 'Amends Pending';
@@ -1736,109 +2253,133 @@
             }
         }
 
+        /**
+         * Toggle prayer completion status (legacy function, kept for compatibility)
+         */
+        function togglePrayerCompletion(index) {
+            try {
+                if (index < 0 || index >= entries.length) {
+                    console.error('Invalid entry index:', index);
+                    return;
+                }
+
+                const entry = entries[index];
+                entry.prayerCompleted = !entry.prayerCompleted;
+
+                if (saveEntriesToStorage()) {
+                    loadPrayerList();
+                } else {
+                    alert('Failed to update prayer status.');
+                }
+            } catch (error) {
+                console.error('Error toggling prayer completion:', error);
+            }
+        }
+
         // Modals can only be closed with Cancel/Close buttons or X to prevent accidental data loss
         // Previously: window.onclick closed modals when clicking outside
         // Removed to prevent users from losing entered data accidentally
 
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            const currentPage = document.querySelector('.page.active');
+        // ============================================================================
+        // KEYBOARD SHORTCUTS
+        // ============================================================================
 
-            if (e.ctrlKey && e.key === 'n') {
-                e.preventDefault();
-                showPage('addPage');
-            }
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                showPage('exportPage');
-            }
-            if (e.key === 'Escape') {
-                // Go back to main page if not already there
-                if (currentPage && currentPage.id !== 'mainPage') {
+        document.addEventListener('keydown', function(e) {
+            try {
+                const currentPage = document.querySelector('.page.active');
+
+                if (e.ctrlKey && e.key === 'n') {
                     e.preventDefault();
-                    showPage('mainPage');
+                    showPage('addPage');
                 }
+                if (e.ctrlKey && e.key === 'e') {
+                    e.preventDefault();
+                    showPage('exportPage');
+                }
+                if (e.key === 'Escape') {
+                    // Go back to main page if not already there
+                    if (currentPage && currentPage.id !== 'mainPage') {
+                        e.preventDefault();
+                        showPage('mainPage');
+                    }
+                }
+            } catch (error) {
+                console.error('Error handling keyboard shortcut:', error);
             }
         });
 
-        // Auto-save draft functionality (only save if not editing existing entry)
-        let draftTimer;
-        function saveDraft() {
-            // Don't save draft if we're editing an existing entry
-            if (editingIndex >= 0) {
-                return;
-            }
+        // ============================================================================
+        // DRAFT MANAGEMENT (Legacy - now handled by new functions above)
+        // ============================================================================
 
-            const draft = {
-                resentfulAt: document.getElementById('resentfulAt').value,
-                category: document.getElementById('category').value,
-                cause: document.getElementById('cause').value,
-                myPart: document.getElementById('myPart').value,
-                characterDefect: document.getElementById('characterDefect').value,
-                underlyingHurt: document.getElementById('underlyingHurt').value,
-                shouldHaveDone: document.getElementById('shouldHaveDone').value,
-                amendsNeeded: document.getElementById('amendsNeeded').value,
-                amendsStatus: document.getElementById('amendsStatus').value,
-                amendsCompleteDate: document.getElementById('amendsCompleteDate').value,
-                notes: document.getElementById('notes').value,
-                affects: getCheckedValues(),
-                prayerCommitment: document.getElementById('prayerCommitment').checked
-            };
-            localStorage.setItem('resentmentDraft', JSON.stringify(draft));
+        function saveDraft() {
+            // Legacy function - redirects to new implementation
+            saveFormDraft();
         }
 
         function loadDraft() {
-            const draft = localStorage.getItem('resentmentDraft');
-            if (draft && editingIndex === -1) {
-                const draftData = JSON.parse(draft);
-                if (draftData.resentfulAt || draftData.cause) {
-                    if (confirm('You have an unsaved draft. Would you like to load it?')) {
-                        // Load draft data into form
-                        Object.keys(draftData).forEach(key => {
-                            if (key === 'affects') {
-                                const checkboxMap = {
-                                    'self-esteem': 'selfEsteem',
-                                    'security': 'security',
-                                    'ambitions': 'ambitions',
-                                    'personal-relationships': 'personalRel',
-                                    'sex-relations': 'sexRel',
-                                    'pride': 'pride',
-                                    'pocketbook': 'pocketbook'
-                                };
-                                draftData.affects.forEach(affect => {
-                                    const checkboxId = checkboxMap[affect];
-                                    if (checkboxId) {
-                                        document.getElementById(checkboxId).checked = true;
-                                    }
-                                });
-                            } else if (key === 'prayerCommitment') {
-                                document.getElementById(key).checked = draftData[key];
-                            } else if (key === 'amendsStatus') {
-                                document.getElementById(key).value = draftData[key];
-                                // Trigger change event to show/hide date field
-                                document.getElementById(key).dispatchEvent(new Event('change'));
-                            } else {
-                                const element = document.getElementById(key);
-                                if (element) element.value = draftData[key];
-                            }
-                        });
-                    }
+            try {
+                if (editingIndex !== -1) return; // Don't load draft when editing
+
+                const draftData = loadDraftFromStorage();
+                if (!draftData) return;
+
+                if (!draftData.resentfulAt && !draftData.cause) return;
+
+                if (!confirm('You have an unsaved draft. Would you like to load it?')) {
+                    return;
                 }
+
+                // Load text fields
+                const textFields = {
+                    'resentfulAt': draftData.resentfulAt,
+                    'category': draftData.category,
+                    'cause': draftData.cause,
+                    'myPart': draftData.myPart,
+                    'characterDefect': draftData.characterDefect,
+                    'underlyingHurt': draftData.underlyingHurt,
+                    'shouldHaveDone': draftData.shouldHaveDone,
+                    'amendsNeeded': draftData.amendsNeeded,
+                    'amendsStatus': draftData.amendsStatus,
+                    'amendsCompleteDate': draftData.amendsCompleteDate,
+                    'notes': draftData.notes
+                };
+
+                Object.entries(textFields).forEach(([fieldId, value]) => {
+                    const field = getElementSafely(fieldId);
+                    if (field && value) field.value = value;
+                });
+
+                // Load checkboxes
+                if (draftData.affects) {
+                    draftData.affects.forEach(affect => {
+                        const checkboxId = CHECKBOX_VALUE_MAP[affect];
+                        if (checkboxId) {
+                            const checkbox = getElementSafely(checkboxId);
+                            if (checkbox) checkbox.checked = true;
+                        }
+                    });
+                }
+
+                // Load prayer commitment
+                const prayerCommitment = getElementSafely('prayerCommitment');
+                if (prayerCommitment && draftData.prayerCommitment) {
+                    prayerCommitment.checked = true;
+                }
+
+                // Trigger amends status change to show/hide date field
+                const amendsStatus = getElementSafely('amendsStatus');
+                if (amendsStatus && draftData.amendsStatus) {
+                    amendsStatus.dispatchEvent(new Event('change'));
+                }
+            } catch (error) {
+                console.error('Error loading draft:', error);
             }
         }
 
-        // Auto-save every 2 seconds when add page is open (only for new entries)
-        document.getElementById('addPage').addEventListener('input', function() {
-            // Only auto-save if we're not editing an existing entry
-            if (editingIndex === -1) {
-                clearTimeout(draftTimer);
-                draftTimer = setTimeout(saveDraft, 2000);
-            }
-        });
-
-        // Clear draft when entry is saved
         function clearDraft() {
-            localStorage.removeItem('resentmentDraft');
+            // Legacy function - redirects to new implementation
+            clearDraftFromStorage();
         }
     </script>
 </body>
