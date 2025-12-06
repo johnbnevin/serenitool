@@ -406,29 +406,42 @@
             margin-top: 15px;
         }
 
-        .page {
+        .modal {
             display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
         }
 
-        .page.active {
-            display: block;
-        }
-
-        .page-content {
+        .modal-content {
             background-color: white;
+            margin: 5% auto;
             padding: 30px;
             border-radius: 15px;
-            box-shadow: var(--shadow);
-            margin-bottom: 30px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
         }
 
-        .back-btn {
-            background: var(--dark);
-            margin-bottom: 20px;
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 20px;
+            top: 15px;
         }
 
-        .back-btn:hover {
-            background: #2c3e50;
+        .close:hover {
+            color: black;
         }
 
         .privacy-notice {
@@ -577,8 +590,6 @@
     </style>
 </head>
 <body>
-    <!-- Main Page -->
-    <div id="mainPage" class="page active">
     <div class="container">
         <div class="header">
             <h1>🌟 SereniTool</h1>
@@ -621,19 +632,19 @@
                 <input type="text" id="searchInput" placeholder="Search entries...">
             </div>
 
-            <button class="btn btn-success" onclick="showPage('addPage')">
+            <button class="btn btn-success" onclick="showAddModal()">
                 ➕ Add New Entry
             </button>
 
-            <button class="btn btn-warning" onclick="showPage('exportPage')">
+            <button class="btn btn-warning" onclick="showExportModal()">
                 📤 Export Data
             </button>
 
-            <button class="btn" onclick="showPage('importPage')">
+            <button class="btn" onclick="showImportModal()">
                 📥 Import Data
             </button>
 
-            <button class="btn btn-success" onclick="showPage('prayerListPage')">
+            <button class="btn btn-success" onclick="showPrayerListModal()">
                 🙏 Prayer List
             </button>
 
@@ -730,14 +741,12 @@
             </div>
         </div>
     </div>
-    </div>
 
-    <!-- Add Entry Page -->
-    <div id="addPage" class="page">
-        <div class="container">
-            <button class="btn back-btn" onclick="showPage('mainPage')">← Back to List</button>
-            <div class="page-content">
-                <h2>Add New Resentment Entry</h2>
+    <!-- Add Entry Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeModal('addModal')">&times;</span>
+            <h2>Add New Resentment Entry</h2>
 
             <div class="tab-container">
                 <div class="tabs">
@@ -887,57 +896,51 @@
             </div>
 
             <div style="text-align: right; margin-top: 20px;">
-                <button class="btn" onclick="showPage('mainPage')">Cancel</button>
+                <button class="btn" onclick="closeModal('addModal')">Cancel</button>
                 <button class="btn btn-success" onclick="saveEntry()">Save Entry</button>
-            </div>
             </div>
         </div>
     </div>
 
-    <!-- Export Page -->
-    <div id="exportPage" class="page">
-        <div class="container">
-            <button class="btn back-btn" onclick="showPage('mainPage')">← Back to List</button>
-            <div class="page-content">
-                <h2>Export Your Inventory</h2>
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeModal('exportModal')">&times;</span>
+            <h2>Export Your Inventory</h2>
             <p>Choose your export format:</p>
             <div class="export-options">
                 <button class="btn btn-success" onclick="exportToJSON()">📄 Export as JSON</button>
                 <button class="btn btn-success" onclick="printInventory()">🖨️ Print Inventory</button>
             </div>
-            </div>
         </div>
     </div>
 
-    <!-- Import Page -->
-    <div id="importPage" class="page">
-        <div class="container">
-            <button class="btn back-btn" onclick="showPage('mainPage')">← Back to List</button>
-            <div class="page-content">
-                <h2>Import Inventory Data</h2>
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeModal('importModal')">&times;</span>
+            <h2>Import Inventory Data</h2>
             <p>Select a JSON file exported from this application:</p>
             <input type="file" id="importFile" accept=".json" style="margin: 20px 0;">
             <div style="text-align: right; margin-top: 20px;">
-                <button class="btn" onclick="showPage('mainPage')">Cancel</button>
+                <button class="btn" onclick="closeModal('importModal')">Cancel</button>
                 <button class="btn btn-success" onclick="importData()">Import Data</button>
-            </div>
             </div>
         </div>
     </div>
 
-    <!-- Prayer List Page -->
-    <div id="prayerListPage" class="page">
-        <div class="container">
-            <button class="btn back-btn" onclick="showPage('mainPage')">← Back to List</button>
-            <div class="page-content">
-                <h2>🙏 Daily Prayer List</h2>
+    <!-- Prayer List Modal -->
+    <div id="prayerListModal" class="modal">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeModal('prayerListModal')">&times;</span>
+            <h2>🙏 Daily Prayer List</h2>
             <p>People you've committed to pray for (Page 552 method):</p>
             <div id="prayerListContent">
                 <!-- Prayer list will be populated here -->
             </div>
             <div style="text-align: right; margin-top: 20px;">
                 <button class="btn btn-success" onclick="printPrayerList()">🖨️ Print Prayer List</button>
-            </div>
+                <button class="btn" onclick="closeModal('prayerListModal')">Close</button>
             </div>
         </div>
     </div>
@@ -991,40 +994,38 @@
             event.target.classList.add('active');
         }
 
-        function showPage(pageId) {
-            // Check for unsaved data when leaving addPage
-            if (pageId !== 'addPage') {
-                const currentPage = document.querySelector('.page.active');
-                if (currentPage && currentPage.id === 'addPage') {
-                    const hasData = document.getElementById('resentfulAt').value.trim() ||
-                                  document.getElementById('cause').value.trim() ||
-                                  document.getElementById('myPart').value.trim() ||
-                                  getCheckedValues().length > 0;
+        function showAddModal() {
+            document.getElementById('addModal').style.display = 'block';
+            clearForm();
+            editingIndex = -1;
+        }
 
-                    if (hasData && !confirm('You have unsaved changes. Are you sure you want to leave?')) {
-                        return;
-                    }
+        function showExportModal() {
+            document.getElementById('exportModal').style.display = 'block';
+        }
+
+        function showImportModal() {
+            document.getElementById('importModal').style.display = 'block';
+        }
+
+        function showPrayerListModal() {
+            document.getElementById('prayerListModal').style.display = 'block';
+            loadPrayerList();
+        }
+
+        function closeModal(modalId) {
+            // For the main entry modal, confirm before closing if there's unsaved data
+            if (modalId === 'addModal') {
+                const hasData = document.getElementById('resentfulAt').value.trim() ||
+                              document.getElementById('cause').value.trim() ||
+                              document.getElementById('myPart').value.trim() ||
+                              getCheckedValues().length > 0;
+
+                if (hasData && !confirm('You have unsaved changes. Are you sure you want to close?')) {
+                    return; // Don't close if user cancels
                 }
             }
-
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-
-            // Show selected page
-            document.getElementById(pageId).classList.add('active');
-
-            // Initialize page-specific content
-            if (pageId === 'addPage') {
-                clearForm();
-                editingIndex = -1;
-            } else if (pageId === 'prayerListPage') {
-                loadPrayerList();
-            }
-
-            // Scroll to top
-            window.scrollTo(0, 0);
+            document.getElementById(modalId).style.display = 'none';
         }
 
         function clearForm() {
@@ -1092,7 +1093,7 @@
             localStorage.setItem('resentmentEntries', JSON.stringify(entries));
             renderEntries();
             updateStats();
-            showPage('mainPage');
+            closeModal('addModal');
         }
 
         function getCheckedValues() {
@@ -1152,8 +1153,8 @@
                 }
             });
 
-            // Show the add page
-            showPage('addPage');
+            // Show the modal
+            document.getElementById('addModal').style.display = 'block';
         }
 
         function deleteEntry(index) {
@@ -1367,7 +1368,7 @@
             linkElement.setAttribute('download', exportFileDefaultName);
             linkElement.click();
 
-            showPage('mainPage');
+            closeModal('exportModal');
         }
 
         function importData() {
@@ -1410,7 +1411,7 @@
                         localStorage.setItem('resentmentEntries', JSON.stringify(entries));
                         renderEntries();
                         updateStats();
-                        showPage('mainPage');
+                        closeModal('importModal');
 
                         alert(`Successfully imported ${importedData.length} entries.`);
                     }
@@ -1671,7 +1672,7 @@
                 printWindow.close();
             }, 250);
 
-            showPage('mainPage');
+            closeModal('exportModal');
         }
 
         function togglePrayerCompletion(index) {
@@ -1742,22 +1743,33 @@
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            const currentPage = document.querySelector('.page.active');
-
             if (e.ctrlKey && e.key === 'n') {
                 e.preventDefault();
-                showPage('addPage');
+                showAddModal();
             }
             if (e.ctrlKey && e.key === 'e') {
                 e.preventDefault();
-                showPage('exportPage');
+                showExportModal();
             }
             if (e.key === 'Escape') {
-                // Go back to main page if not already there
-                if (currentPage && currentPage.id !== 'mainPage') {
-                    e.preventDefault();
-                    showPage('mainPage');
-                }
+                // Only close modals with Escape if it's not the main entry modal (addModal)
+                // or if the entry modal has no data entered to prevent accidental data loss
+                document.querySelectorAll('.modal').forEach(modal => {
+                    if (modal.id === 'addModal') {
+                        // Check if any data has been entered in the form
+                        const hasData = document.getElementById('resentfulAt').value.trim() ||
+                                      document.getElementById('cause').value.trim() ||
+                                      document.getElementById('myPart').value.trim() ||
+                                      getCheckedValues().length > 0;
+
+                        if (!hasData || confirm('You have unsaved changes. Are you sure you want to close?')) {
+                            modal.style.display = 'none';
+                        }
+                    } else {
+                        // Other modals (export, import, prayer list) can close freely
+                        modal.style.display = 'none';
+                    }
+                });
             }
         });
 
@@ -1827,8 +1839,8 @@
             }
         }
 
-        // Auto-save every 2 seconds when add page is open (only for new entries)
-        document.getElementById('addPage').addEventListener('input', function() {
+        // Auto-save every 2 seconds when modal is open (only for new entries)
+        document.getElementById('addModal').addEventListener('input', function() {
             // Only auto-save if we're not editing an existing entry
             if (editingIndex === -1) {
                 clearTimeout(draftTimer);
