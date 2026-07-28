@@ -1,3 +1,14 @@
+> **Notice**
+>
+> Due to Microsoft/GitHub's recent willingness to remove bitchat software at the
+> behest of Indian government pressure, GitHub is no longer the source for my
+> latest repositories.
+>
+> See **[git.jbnco.co](https://git.jbnco.co)** for my projects, now hosted on
+> Nostr ngit.
+
+---
+
 *"Resentment is the 'number one' offender. It destroys more alcoholics than anything else."* - Big Book, p. 64
 
 # SereniTool
